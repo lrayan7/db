@@ -1,16 +1,13 @@
 package main
 
 import (
-	// "fmt"
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	// "strings"
+	"strconv"
+	"strings"
 	"sync"
-	// "time"
-	// "encoding/json"
 )
 var db_msg string 
 var wg sync.WaitGroup
@@ -24,47 +21,52 @@ func main() {
 func homepageHandler(w http.ResponseWriter, r *http.Request){ 
   http.ServeFile(w, r, "static/index.html")
 }
+type teststruct struct{
+  Action string `json:"Action"`
+  Table string `json:"Table"`
+  X map[string]interface{} `json:"Value"`
+}  
 func dbReqHandler(w http.ResponseWriter, r *http.Request){
-
     request_action, _ := ioutil.ReadAll(r.Body)
+//--------------------------------------------------------------------------------------------
+//              JSON handling - can be cleaner for sure 
+//--------------------------------------------------------------------------------------------
     actionJsonFormat := string(request_action)
-    // fmt.Println(actionJsonFormat)
-    var buffer bytes.Buffer
-    buffer.WriteString(`"`)
-    for _, char := range actionJsonFormat {
-        if char != '&' && char != '=' {
-          buffer.WriteString(string(char))
-        }
-        if char == '&' {
-          buffer.WriteString(`","`)
-        } 
-        if char == '=' {
-          buffer.WriteString(`":"`)
+    actionJsonFormat = strings.ReplaceAll(actionJsonFormat, "=", `":"`)
+    actionJsonFormat = strings.ReplaceAll(actionJsonFormat, "&", `","`)
+    actionJsonFormat = strings.ReplaceAll(actionJsonFormat, "+", `:`)
+    for i,_ := range strings.Split(actionJsonFormat, ","){
+        if i >= 2{
+          str2 := "x" + strconv.Itoa(i-1)
+          actionJsonFormat = strings.Replace(actionJsonFormat, "-", str2,1)
         }
     }
-    buffer.WriteString(`"`)
-    actionJsonFormat = "[{" + buffer.String() + "}]"
-    var newMsg []msg
-    err := json.Unmarshal([]byte(actionJsonFormat), &newMsg)
-    // fmt.Println("now", newMsg)
-    // fmt.Println("")
-    // fmt.Println(actionJsonFormat)
-    if err != nil {
-      // panic(err)
+    actionJsonFormat = `{"` + actionJsonFormat + `"}`
+//--------------------------------------------------------------------------------------------
+/*
+    here unmarshal incoming json to struct where we have 2 const fields and more 
+    dynamical fields depending on client input.
+*/
+    newMsg := msg{}
+    if err := json.Unmarshal([]byte(actionJsonFormat), &newMsg); err != nil{
       fmt.Println("Error !")
     }
-    // cast this string which is json to this struct
-    // for each http request to /dbgo, will spawn new wrapper 
-    // each wrapper will spawn a child thread that the wrapper will
-    // wait for, and by the child thread finishing its job, wrapper will exit 
+    if err := json.Unmarshal([]byte(actionJsonFormat), &newMsg.Value); err != nil{
+      fmt.Println("Error !")
+    }
+    delete(newMsg.Value, "Action")
+    delete(newMsg.Value, "Table")
+    // for _,val := range newMsg.Value{
+    //   fmt.Println("-> ", val)
+    // }
+    
     go func(){
+      wg.Add(1)
       spawnner_wrapper(newMsg)
     }()
-}   
-func spawnner_wrapper(message []msg){
+}
+func spawnner_wrapper(message msg){
     thread_response := make(chan string)    
-    wg.Add(1)
-    
     go func(){
       spawn_thread(thread_response, message)
       wg.Done()
@@ -78,7 +80,7 @@ func spawnner_wrapper(message []msg){
       }
       if(responded){ break }
     }
-    wg.Wait() // might be unnecessary 
+     
     response_msg := <-thread_response
     fmt.Println("answer is= ", response_msg, " !")    
 }
