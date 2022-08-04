@@ -29,3 +29,23 @@ type msg struct{
 }
 ```
 
+<br/>
+
+### Data Structure ###
+
+every struct is stored in a map with a pointer<br/>
+```
+DB:   tablename1: *table{      entry1: *entry{} 
+                               entry2: *entry{} 
+                              .
+                              .               } 
+                        
+      tablename2: *table{} <br/>
+          .
+          .
+          .
+          
+```
+        
+
+
