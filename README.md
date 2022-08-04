@@ -1,4 +1,4 @@
-# db
+# db - (in progress...)
 Fun project, A database server written in Golang 
 
 Supports the following 
