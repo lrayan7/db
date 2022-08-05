@@ -97,7 +97,7 @@
                                 <form class="form-inline">
                                     <div  class="changeborder">
                                         <input id="inputreq" class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
-                                        <button class="btn btn-outline-success my-2 my-sm-0" type="submit" onclick="run()">GO</button>
+                                        <button id="mybutton" class="btn btn-outline-success my-2 my-sm-0" type="submit" onclick="run()">GO</button>
                                     </div>
                                 </form>
                             </nav>  
@@ -108,9 +108,19 @@
                                 Help with syntax
                                 </button>
                                 <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                                <li><a class="dropdown-item" href="#">Action</a></li>
-                                <li><a class="dropdown-item" href="#">Another action</a></li>
-                                <li><a class="dropdown-item" href="#">Something else here</a></li>
+                                <li><p class="dropdown-item">
+                                    <br>
+                                    Supported syntax: <br>
+                                    INIT, ADD, UPDATE, READ, DELETE commands <br>
+                                    Example: <br>
+                                    INIT '<'table_name> table <br>
+                                    ADD '<'table_name> '<'primekey>,'<'rest of data> <br>
+                                    <br>
+                                    INIT users table <br>
+                                    ADD users user:"john",age:20
+                                    
+                                    
+                                </p></li>
                                 </ul>
                             </div>
                         </div>
@@ -119,6 +129,9 @@
                 </div>
 
             </div>
+        </div>
+        <div id="bottomimg" class="row">
+            <img src="{{ url_for('static', filename='newlogo.png') }}">
         </div>
     </div>
 
