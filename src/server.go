@@ -1,14 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"strconv"
-	"strings"
+	"net/url"
+	// "os"
 	"sync"
 )
+
 var db_msg string 
 var wg sync.WaitGroup
 func main() {
@@ -21,66 +20,35 @@ func main() {
 func homepageHandler(w http.ResponseWriter, r *http.Request){ 
   http.ServeFile(w, r, "static/index.html")
 }
-type teststruct struct{
-  Action string `json:"Action"`
-  Table string `json:"Table"`
-  X map[string]interface{} `json:"Value"`
-}  
 func dbReqHandler(w http.ResponseWriter, r *http.Request){
-    request_action, _ := ioutil.ReadAll(r.Body)
-//--------------------------------------------------------------------------------------------
-//              JSON handling - can be cleaner for sure 
-//--------------------------------------------------------------------------------------------
-    actionJsonFormat := string(request_action)
-    actionJsonFormat = strings.ReplaceAll(actionJsonFormat, "=", `":"`)
-    actionJsonFormat = strings.ReplaceAll(actionJsonFormat, "&", `","`)
-    actionJsonFormat = strings.ReplaceAll(actionJsonFormat, "+", `:`)
-    for i,_ := range strings.Split(actionJsonFormat, ","){
-        if i >= 2{
-          str2 := "x" + strconv.Itoa(i-1)
-          actionJsonFormat = strings.Replace(actionJsonFormat, "-", str2,1)
-        }
-    }
-    actionJsonFormat = `{"` + actionJsonFormat + `"}`
-//--------------------------------------------------------------------------------------------
-/*
-    here unmarshal incoming json to struct where we have 2 const fields and more 
-    dynamical fields depending on client input.
-*/
-    newMsg := msg{}
-    if err := json.Unmarshal([]byte(actionJsonFormat), &newMsg); err != nil{
-      fmt.Println("Error !")
-    }
-    if err := json.Unmarshal([]byte(actionJsonFormat), &newMsg.Value); err != nil{
-      fmt.Println("Error !")
-    }
-    delete(newMsg.Value, "Action")
-    delete(newMsg.Value, "Table")
-    // for _,val := range newMsg.Value{
-    //   fmt.Println("-> ", val)
-    // }
+    
+    r.ParseForm()
+    item := r.Form
+    checkFormSyntax(item["Action"][0])
     
     go func(){
-      wg.Add(1)
-      spawnner_wrapper(newMsg)
+      spawnner_wrapper(item)
     }()
 }
-func spawnner_wrapper(message msg){
+// will be converted to a supervisor process later on
+// should also think if spawning process for each request takes more time
+// than passing the request via channel to the supervisor 
+func spawnner_wrapper(message url.Values){
     thread_response := make(chan string)    
+    wg.Add(1)
     go func(){
       spawn_thread(thread_response, message)
-      wg.Done()
+      wg.Done() // not sure still 
     }()
-    responded := false
-    for {
-      select {
-      case <-thread_response:
-        responded = true
-        break
-      }
-      if(responded){ break }
-    }
-     
+    // wait for child to finish
+    wg.Wait()
     response_msg := <-thread_response
-    fmt.Println("answer is= ", response_msg, " !")    
+    fmt.Println(response_msg, " !")    
 }
+
+func checkFormSyntax(s string) bool{
+	if s == "INIT" || s == "ADD" || s == "DELETE" || s == "READ" {
+		return true
+	}
+	return false
+} 

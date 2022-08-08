@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -12,7 +13,7 @@ var logfile_bytime map[time.Time]string = make(map[time.Time]string)
 var logfile_byorder []time.Time 
 
 func take_lock(s string, wg *sync.WaitGroup){
-	
+	fmt.Println("thread #" ,syscall.Getpid() ," is taking lock")
 	mutex.Lock()
 	t := time.Now()
 	logfile_bytime[t] = "COMMITING: " + s
