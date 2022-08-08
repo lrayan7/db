@@ -4,7 +4,7 @@ import (
 	// "bytes"
 	"fmt"
 	"net/url"
-	"os"
+	// "os"
 	"strings"
 	// "strconv"
 )
@@ -18,18 +18,17 @@ func map_to_string(m []string) string{
 
 // -- interface to server.go
 func spawn_thread(thread_response chan string,  s url.Values /*msg*/){
-	
 	str := map_to_string(s["Value"]) // ..., ..., ..., ..., ...,
-	var f *os.File
-
 	if s["Action"][0] == "INIT"{
 		fmt.Println("initiating new table in DB !")
 		chosen := s["Table"][0]
 		if _,found := db.tables[chosen]; !found{
 			db.tables[chosen] = make_table(chosen)
+			write_to_log("INIT", chosen, str);
 		}
-		write_to_log("ADD", chosen, str,f);
+		fmt.Println("HERE interface")
 		thread_response <- "blank" 
+		
 		return
 	}
 	// fmt.Println("here ", str);
@@ -39,8 +38,8 @@ func spawn_thread(thread_response chan string,  s url.Values /*msg*/){
 		if db.find_table(chosen) == nil {
 			fmt.Println("Table was not found !")
 		}else{ 
-			write_to_log("ADD", chosen, str,f);
 			db.find_table(chosen).insert_to_table(str)
+			write_to_log("ADD", chosen, str);
 		}
 		give_lock(&wg)
 		thread_response <- "blank"
@@ -72,11 +71,14 @@ func spawn_thread(thread_response chan string,  s url.Values /*msg*/){
 		return
 	}
 }
-func write_to_log(cmdd string, table string, s string, f *os.File){
-	fileHandler_("write", table,  stringify(cmdd, table, s))
+func write_to_log(cmdd string, table string, s string){
+	db.dblog = append(db.dblog, "\n" + stringify(cmdd, table, s))
+}
+func write_from_log(){
+	storageHandler("write")
 }
 func stringify(cmdd string, table string, s string) string{
-	return "[ {\"Action\": " + `"` + cmdd + `"` + ", \"Table\": " + `"` + table + `"` + ", \"Value\": [" + s + "]} ]"
+	return "{\"Action\": " + `"` + cmdd + `"` + ", \"Table\": " + `"` + table + `"` + ", \"Value\": [" + s + "]}"
 }
 
 

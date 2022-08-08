@@ -3,7 +3,10 @@ package main
 import (
 	// "encoding/json"
 	// "io/ioutil"
-	"fmt"
+	// "fmt"
+	// "fmt"
+	// "fmt"
+	"io"
 	"log"
 	"os"
 )
@@ -16,14 +19,19 @@ import (
 type index struct{
 	table_name string
 }
-func fileHandler_(cmdd string, table_name string, s string){
+func storageHandler(cmdd string){
 	if cmdd == "write" {
-		fmt.Println("HERE? ? ? ")
-		f2, _:= os.OpenFile("log.json", os.O_RDWR, 0644) 
-		_, err2 := f2.WriteString(s)
-		if err2 != nil{
-			log.Fatal(err2)
+		f2, _:= os.OpenFile("storage.json", os.O_APPEND | os.O_RDWR, 0644) 
+		for _,v := range db.dblog{
+			_, err2 := io.WriteString(f2, v + "\n")
+			if err2 != nil{
+				log.Fatal(err2)
+			}
 		}
+		// refresh log 
+		db.dblog = nil
+		db.dblog = make([]string, 1)
+		db.dblog[0] = ""
 	}
 }
 
