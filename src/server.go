@@ -9,10 +9,17 @@ import (
 	"sync"
 )
 
+// to terminate db process
 var terminate chan bool 
 var db_msg string 
 var wg sync.WaitGroup
+
 var req_number int = 0
+// FLUSH_TIME == number of requests to flush log 
+// into Storage
+var FLUSH_TIME int = 3
+
+
 func main() {
     init_db()
     http.HandleFunc("/homepage", homepageHandler) // Update this line of code
@@ -33,7 +40,7 @@ func dbReqHandler(w http.ResponseWriter, r *http.Request){
     if checkFormSyntax(item["Action"][0]) == false{
       return 
     }
-    if req_number % 3 == 0 { terminate <- false }
+    if req_number % FLUSH_TIME == 0 { terminate <- false }
     req_number++
     item_channel <- item
 

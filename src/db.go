@@ -47,7 +47,7 @@ func main_supervisor(){
 		if action := <- terminate; action {
 			break
 		}
-		for i :=0; i<3; i++ {
+		for i :=0; i<FLUSH_TIME; i++ {
 			item_2b_sent := <- item_channel
 			thread_response := make(chan string, 3) 
 			// make(chan Issue, len(allIssues))
