@@ -20,14 +20,7 @@ Supports the following
 ## How it works 
 flask app listens on query input, that sends JSON formatted ```{Action:_,Table:_,Value:_}``` request to DB server <br/>
 for example, if client writes ```INIT users table``` - ```{Action:INIT,Table:users,Value:_}``` will be sent to the DB <br/>
-upon intercepting the request at DB side, request is parsed and unmarshalled into the following struct: <br/>
-```golang
-type msg struct{
-  Action string `json:"Action"`
-  Table string `json:"Table"`
-  Value map[string]interface{} `json:"Value"`
-}
-```
+upon intercepting the request at DB side, request is parsed and a worker spawns if needed to handle it <br/>
 
 <br/>
 
