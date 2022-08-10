@@ -13,9 +13,7 @@ import (
 var terminate chan bool 
 var db_msg string 
 var wg sync.WaitGroup
-
-var req_number int = 0
-// FLUSH_TIME == number of requests to flush log 
+var LOAD_FACTOR int = 5
 // into Storage
 var FLUSH_TIME int = 3
 
@@ -40,9 +38,9 @@ func dbReqHandler(w http.ResponseWriter, r *http.Request){
     if checkFormSyntax(item["Action"][0]) == false{
       return 
     }
-    if req_number % FLUSH_TIME == 0 { terminate <- false }
-    req_number++
     item_channel <- item
+    x := <- listen_on_item_channel
+    listen_on_item_channel <- x + 1
 
 }
 // will be converted to a supervisor process later on

@@ -3,7 +3,7 @@ package main
 import (
 	// "bytes"
 	"fmt"
-	"net/url"
+	// "net/url"
 	// "os"
 	"strings"
 	// "strconv"
@@ -17,58 +17,67 @@ func map_to_string(m []string) string{
 }
 
 // -- interface to server.go
-func spawn_thread(thread_response chan string,  s url.Values /*msg*/){
-	str := map_to_string(s["Value"]) // ..., ..., ..., ..., ...,
-	if s["Action"][0] == "INIT"{
-		fmt.Println("initiating new table in DB !")
-		chosen := s["Table"][0]
-		if _,found := db.tables[chosen]; !found{
-			db.tables[chosen] = make_table(chosen)
-			write_to_log("INIT", chosen, str);
+func worker(thread_response chan string/*s url.Values /*msg*/){
+	for{ 
+		select{ 
+		case s :=<- item_channel :
+			str := map_to_string(s["Value"]) // parse values
+			if s["Action"][0] == "INIT"{
+				fmt.Println("initiating new table in DB !")
+				chosen := s["Table"][0]
+				if _,found := db.tables[chosen]; !found{
+					db.tables[chosen] = make_table(chosen)
+					write_to_log("INIT", chosen, str);
+				}
+				goto FINISHED_PROCESSING
+			}
+			// fmt.Println("here ", str);
+			if s["Action"][0] == "ADD"{
+				take_lock(s["Action"][0] + s["Table"][0] + str, &wg)
+				chosen := s["Table"][0]
+				if db.find_table(chosen) == nil {
+					fmt.Println("Table was not found !")
+				}else{ 
+					db.find_table(chosen).insert_to_table(str)
+					write_to_log("ADD", chosen, str);
+				}
+				give_lock(&wg)
+				goto FINISHED_PROCESSING
+			}
+			// multiple readers allowed
+			if s["Action"][0] == "READ"{
+				chosen := s["Table"][0]
+				if t := db.find_table(chosen); t == nil {
+					fmt.Println("Table was not found !")
+				}else{ 
+					if _, found := t.find_entry_by_name(strings.Split(str, ",")[0]); found{
+						thread_response<- "blank"
+						return
+					} 
+				}
+				goto FINISHED_PROCESSING
+			}
+			// // deal with it later - strings.Split(str, ",")[0]
+			// if s["Action"][0] == "UPDATE"{
+			// 	take_lock(s["Action"][0] + s["Table"][0] + str, &wg)
+			// 	chosen := s["Table"][0]
+			// 	if t := db.find_table(chosen); t == nil {
+			// 		fmt.Println("Table was not found !")	
+			// 	}else{ t.update_to_table(str) }
+			// 	give_lock(&wg)
+			// 	thread_response <- "blank"
+			// 	return
+			// }
 		}
-		fmt.Println("HERE interface")
-		thread_response <- "blank" 
+FINISHED_PROCESSING:	
 		
-		return
-	}
-	// fmt.Println("here ", str);
-	if s["Action"][0] == "ADD"{
-		take_lock(s["Action"][0] + s["Table"][0] + str, &wg)
-		chosen := s["Table"][0]
-		if db.find_table(chosen) == nil {
-			fmt.Println("Table was not found !")
-		}else{ 
-			db.find_table(chosen).insert_to_table(str)
-			write_to_log("ADD", chosen, str);
+		thread_response <- "blank" 
+		take_channel_lock()
+		x := <- listen_on_item_channel
+		if x > 0 {
+			listen_on_item_channel <- x-1
 		}
-		give_lock(&wg)
-		thread_response <- "blank"
-		return
-	}
-	// multiple readers 
-	if s["Action"][0] == "READ"{
-		chosen := s["Table"][0]
-		if t := db.find_table(chosen); t == nil {
-			fmt.Println("Table was not found !")
-		}else{ 
-			if _, found := t.find_entry_by_name(strings.Split(str, ",")[0]); found{
-				thread_response<- "blank"
-				return
-			} 
-		}
-		thread_response <- "blank"
-		return
-	}
-	// deal with it later - strings.Split(str, ",")[0]
-	if s["Action"][0] == "UPDATE"{
-		take_lock(s["Action"][0] + s["Table"][0] + str, &wg)
-		chosen := s["Table"][0]
-		if t := db.find_table(chosen); t == nil {
-			fmt.Println("Table was not found !")	
-		}else{ t.update_to_table(str) }
-		give_lock(&wg)
-		thread_response <- "blank"
-		return
+		give_channel_lock()
 	}
 }
 func write_to_log(cmdd string, table string, s string){
