@@ -1,11 +1,7 @@
 package main
 
 import (
-	// "fmt"
-	// "fmt"
 	"net/http"
-	// "net/url"
-	// "os"
 	"sync"
 )
 
@@ -38,7 +34,10 @@ func dbReqHandler(w http.ResponseWriter, r *http.Request){
     if checkFormSyntax(item["Action"][0]) == false{
       return 
     }
+    // item is valid at this point
     item_channel <- item
+    // listen_on_item_channel is 0 at first 
+    // increment value
     x := <- listen_on_item_channel
     listen_on_item_channel <- x + 1
 

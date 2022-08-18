@@ -4,16 +4,24 @@ import (
 	"net/url"
 	"os"
 )
-
+const (
+    Stopped = 0
+    Paused  = 1
+    Running = 2
+	MAX_WORKER_CAPACITY = 100
+)
 
 type DB struct {
 	tables map[string]*table
 	dblog []string
 }
+var running_workers int = 0
 var first bool = true
 var db *DB
 var item_channel chan url.Values = make(chan url.Values)
 var listen_on_item_channel chan int = make(chan int)
+var req_worker chan string 
+var worker_channel ChannelQueue
 // on system start
 // init db on memory 
 func init_db() {
@@ -32,7 +40,7 @@ func init_db() {
 	db.dblog = make([]string, 1)
 	db.dblog[0] = "[{ \"State\": \"init log\" }]"
 	// supervisor start
-	req_worker := make(chan string)
+	req_worker = make(chan string)
 	listen_on_item_channel <- 0
 	terminate = make(chan bool)
 	terminate <- false
@@ -47,16 +55,35 @@ func init_db() {
 func main_supervisor(req_worker chan string){
 	// var item_2b_sent url.Values
 	// var response_msg string 
-	var thread_response chan string = make(chan string)
 	for{
-		select{ 
+		select{
+			// new item added
+		case newitem := <- listen_on_item_channel :
+			if newitem > 0 { 
+				newitem = newitem - 1
+				listen_on_item_channel <- newitem
+				// spawn worker 
+				var newchannel Channel
+				newchannel.init()
+				ret := worker_channel.push(newchannel)
+				if ret == "SUCCESS" { 
+					go func(){
+						worker(&newchannel)
+					}()	
+				}
+			}
 		case action := <- terminate :
 			if action { return }
 		case listen := <- req_worker :
 			if listen == "yes" {
-				go func(){
-					worker(thread_response)
-				}()		
+				var newchannel Channel
+				newchannel.init()
+				ret := worker_channel.push(newchannel)
+				if ret == "SUCCESS" { 
+					go func(){
+						worker(&newchannel)
+					}()	
+				}
 			}
 		}
 	}
@@ -71,13 +98,6 @@ func (dbs *DB) find_table(table_name string) *table {
 		return found_table
 	}
 	return nil
-}
-func (q *Queue) q_insert(req Request) {
-	if q.size == q.capacity {
-		return
-	}
-	q.slots[q.size] = req
-	q.size++
 }
 
 func listener(req_worker chan string){

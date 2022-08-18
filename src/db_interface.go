@@ -17,7 +17,10 @@ func map_to_string(m []string) string{
 }
 
 // -- interface to server.go
-func worker(thread_response chan string/*s url.Values /*msg*/){
+func worker(thread_channel *Channel){
+	var thread_response *chan string = thread_channel.channel
+	
+	running_workers++
 	for{ 
 		select{ 
 		case s :=<- item_channel :
@@ -51,33 +54,18 @@ func worker(thread_response chan string/*s url.Values /*msg*/){
 					fmt.Println("Table was not found !")
 				}else{ 
 					if _, found := t.find_entry_by_name(strings.Split(str, ",")[0]); found{
-						thread_response<- "blank"
+						(*thread_response)<- "blank"
 						return
 					} 
 				}
 				goto FINISHED_PROCESSING
 			}
-			// // deal with it later - strings.Split(str, ",")[0]
-			// if s["Action"][0] == "UPDATE"{
-			// 	take_lock(s["Action"][0] + s["Table"][0] + str, &wg)
-			// 	chosen := s["Table"][0]
-			// 	if t := db.find_table(chosen); t == nil {
-			// 		fmt.Println("Table was not found !")	
-			// 	}else{ t.update_to_table(str) }
-			// 	give_lock(&wg)
-			// 	thread_response <- "blank"
-			// 	return
-			// }
 		}
 FINISHED_PROCESSING:	
 		
-		thread_response <- "blank" 
-		take_channel_lock()
-		x := <- listen_on_item_channel
-		if x > 0 {
-			listen_on_item_channel <- x-1
-		}
-		give_channel_lock()
+		(*thread_response) <- "blank" 
+		running_workers--
+		worker_channel.delete(thread_channel)
 	}
 }
 func write_to_log(cmdd string, table string, s string){
