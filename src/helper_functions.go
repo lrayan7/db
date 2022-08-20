@@ -1,5 +1,10 @@
-package main 
-import "strings"
+package main
+
+import (
+	"strconv"
+	"strings"
+	"time"
+)
 
 func map_to_string(m []string) string{
 	s := ""
@@ -9,7 +14,12 @@ func map_to_string(m []string) string{
 	return strings.TrimSuffix(s,",")
 }
 func write_to_log(cmdd string, table string, s string){
-	db.dblog = append(db.dblog, "\n" + stringify(cmdd, table, s))
+	// add timestamps
+	hours := time.Now().Hour()
+	minutes := time.Now().Minute()
+	second := time.Now().Second()
+	timestamp := `"` + strconv.Itoa(hours) + ":" + strconv.Itoa(minutes) + ":" + strconv.Itoa(second) + `"`
+	db.dblog = append(db.dblog, "\n {" + timestamp + " : " + stringify(cmdd, table, s) + " }")
 	flush_lock(&wg)
 	flush_value++
 	flush_unlock(&wg)
