@@ -42,6 +42,10 @@ func init_db() {
     go func() {
 		main_supervisor()
 	}()
+	// supervisor start
+    go func() {
+		log_write()
+	}()
 }
 
 func (dbs *DB) insert_to_db(t *table) {
@@ -54,7 +58,5 @@ func (dbs *DB) find_table(table_name string) *table {
 	}
 	return nil
 }
-
-
 
 

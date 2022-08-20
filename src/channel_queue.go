@@ -5,7 +5,6 @@ import (
 	"time"
 )
 
-
 type Channel struct{
 	channel chan url.Values
 	timestamp time.Time
@@ -43,7 +42,7 @@ func (q *ChannelQueue) delete(c *Channel) {
 	}
 	found := false
 	slots := q.slots
-	for k,_ := range slots {
+	for k := range slots {
 		if &slots[k] == c {
 			found = true
 			tmp1 := slots[:k]

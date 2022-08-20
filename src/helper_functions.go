@@ -10,8 +10,11 @@ func map_to_string(m []string) string{
 }
 func write_to_log(cmdd string, table string, s string){
 	db.dblog = append(db.dblog, "\n" + stringify(cmdd, table, s))
+	flush_lock(&wg)
+	flush_value++
+	flush_unlock(&wg)
 }
-func write_from_log(){
+func flush_log(){
 	storageHandler("write")
 }
 func stringify(cmdd string, table string, s string) string{

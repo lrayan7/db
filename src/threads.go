@@ -43,7 +43,6 @@ func main_supervisor(){
 
 func worker(thread_channel *Channel){
 
-	
 	running_workers++
 	s :=<- thread_channel.channel
 	str := map_to_string(s["Value"]) // parse values
@@ -60,13 +59,11 @@ func worker(thread_channel *Channel){
 			}
 			goto FINISHED_PROCESSING
 		case "ADD" :
-			take_lock(action + chosenTable + str, &wg)
 			if db.find_table(chosenTable) == nil {
 				fmt.Println("Table was not found !")
 			}else{ 
 				db.find_table(chosenTable).insert_to_table(str)
 			}
-			give_lock(&wg)
 			goto FINISHED_PROCESSING
 		case "READ" :
 			if t := db.find_table(chosenTable); t == nil {
@@ -86,37 +83,13 @@ FINISHED_PROCESSING:
 	(&worker_channel).delete(thread_channel)
 }
 
+const MAX_FLUSH_VALUE = 3
+var flush_value int = 0
+func log_write() {
+	for{
+		if flush_value >= MAX_FLUSH_VALUE {
+			flush_log()
+		}
+	}
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// old stringify 
-// i := 0
-// 	var buffer bytes.Buffer
-// 	buffer.WriteString(`"`)
-// 	for _,col := range e.cols {
-// 		if i > 0 {
-// 			buffer.WriteString(`,`)			
-// 		}else{ i = e.line_number }
-// 		buffer.WriteString(strconv.Itoa(i))
-// 		buffer.WriteString(`":"`)	
-// 		fmt.Println(col.fieldname, " and ")	
-// 		buffer.WriteString(col.fieldname)
-// 		buffer.WriteString(`"`)
-// 		i++
-// 	}
-// 	fmt.Println("[{" + buffer.String() + "}]")
-// 	return "[{" + buffer.String() + "}]" 

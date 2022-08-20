@@ -29,6 +29,9 @@ func storageHandler(cmdd string){
 		db.dblog = nil
 		db.dblog = make([]string, 1)
 		db.dblog[0] = ""
+		flush_lock(&wg)
+		flush_value = 0
+		flush_unlock(&wg)
 	}
 }
 
